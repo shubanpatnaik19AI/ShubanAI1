@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, User } from "lucide-react";
+import { Bot, User, Film } from "lucide-react";
 import type { Message } from "@/lib/chat-store";
 
 export function ChatMessage({ message }: { message: Message }) {
@@ -20,8 +20,32 @@ export function ChatMessage({ message }: { message: Message }) {
             : "bg-secondary/60 text-foreground rounded-bl-md"
         }`}
       >
+        {/* Attachments */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {message.attachments.map((att) =>
+              att.type === "image" ? (
+                <img
+                  key={att.id}
+                  src={att.url}
+                  alt={att.name}
+                  className="max-w-full rounded-lg max-h-64 object-contain cursor-pointer"
+                  onClick={() => window.open(att.url, "_blank")}
+                />
+              ) : (
+                <video
+                  key={att.id}
+                  src={att.url}
+                  controls
+                  className="max-w-full rounded-lg max-h-64"
+                />
+              )
+            )}
+          </div>
+        )}
+
         {isUser ? (
-          <p className="text-sm">{message.content}</p>
+          message.content ? <p className="text-sm">{message.content}</p> : null
         ) : (
           <div className="prose-chat">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>

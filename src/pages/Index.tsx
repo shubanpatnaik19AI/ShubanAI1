@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useConversations } from "@/lib/chat-store";
+import type { Attachment } from "@/lib/chat-store";
 import { streamChat } from "@/lib/stream-chat";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
@@ -23,13 +24,13 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(false);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, attachments?: Attachment[]) => {
       let convId = activeId;
       if (!convId) {
         convId = createConversation();
       }
 
-      addMessage(convId, { role: "user", content: text });
+      addMessage(convId, { role: "user", content: text, attachments });
       setIsLoading(true);
 
       // Add empty assistant message
@@ -43,6 +44,15 @@ export default function Index() {
         const history = conv
           ? [...conv.messages.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: text }]
           : [{ role: "user" as const, content: text }];
+
+        // If there are image attachments, add them to the last user message for the AI
+        if (attachments && attachments.length > 0) {
+          const imageUrls = attachments.filter((a) => a.type === "image").map((a) => a.url);
+          if (imageUrls.length > 0) {
+            const lastMsg = history[history.length - 1];
+            lastMsg.content = `${lastMsg.content}\n\n[User attached ${imageUrls.length} image(s): ${imageUrls.join(", ")}]`;
+          }
+        }
 
         await streamChat({
           messages: history,

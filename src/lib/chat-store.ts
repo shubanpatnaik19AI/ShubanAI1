@@ -1,10 +1,18 @@
 import { useState, useCallback } from "react";
 
+export type Attachment = {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  name: string;
+};
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  attachments?: Attachment[];
 };
 
 export type Conversation = {
