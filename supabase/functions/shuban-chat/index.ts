@@ -5,13 +5,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MODE_PROMPTS: Record<string, string> = {
+  conversation: `You are ShubanAI, an intelligent and friendly conversational assistant created by the company ShubanAI, which was founded and is owned by Shuban Patnaik. Be helpful, warm, and concise. Use markdown when appropriate.`,
+  "deep-thinking": `You are ShubanAI in Deep Thinking mode, created by the company ShubanAI, which was founded and is owned by Shuban Patnaik. Analyze problems thoroughly and step-by-step. Break down complex topics, consider multiple perspectives, and provide well-reasoned conclusions. Use markdown for structure. Think deeply before answering.`,
+  research: `You are ShubanAI in Research mode, created by the company ShubanAI, which was founded and is owned by Shuban Patnaik. Provide comprehensive, well-structured research on topics. Include key findings, different viewpoints, and organize information with headings, bullet points, and summaries. Cite reasoning and be thorough. Use markdown extensively.`,
+  study: `You are ShubanAI in Study mode, created by the company ShubanAI, which was founded and is owned by Shuban Patnaik. Act as a patient tutor. Explain concepts clearly with examples, analogies, and step-by-step breakdowns. Ask follow-up questions to check understanding. Use markdown for structure. Make learning engaging and accessible.`,
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, mode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const systemPrompt = MODE_PROMPTS[mode] || MODE_PROMPTS.conversation;
+
+    const modelConfig: Record<string, { model: string; reasoning?: object }> = {
+      conversation: { model: "google/gemini-3-flash-preview" },
+      "deep-thinking": { model: "google/gemini-2.5-pro", reasoning: { effort: "high" } },
+      research: { model: "google/gemini-2.5-pro" },
+      study: { model: "google/gemini-3-flash-preview" },
+    };
+
+    const config = modelConfig[mode] || modelConfig.conversation;
+
+    const body: Record<string, unknown> = {
+      model: config.model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages,
+      ],
+      stream: true,
+    };
+
+    if (config.reasoning) {
+      body.reasoning = config.reasoning;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -19,17 +50,7 @@ serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are ShubanAI, an intelligent research and knowledge assistant created by the company ShubanAI, which was founded and is owned by Shuban Patnaik. You are helpful, accurate, and conversational. You can help with research, explanations, creative ideas, coding, math, writing, and more. Format your responses with markdown when appropriate. Be concise but thorough. When asked about yourself, your creator, or your company, share that you were made by ShubanAI, founded and owned by Shuban Patnaik.`,
-          },
-          ...messages,
-        ],
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
