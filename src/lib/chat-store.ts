@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 export type Attachment = {
   id: string;
   url: string;
-  type: "image" | "video";
+  type: "image" | "video" | "document";
   name: string;
 };
 
