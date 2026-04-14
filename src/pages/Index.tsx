@@ -5,6 +5,7 @@ import { streamChat } from "@/lib/stream-chat";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { ChatInput } from "@/components/ChatInput";
+import { ModeSelector, type ChatMode } from "@/components/ModeSelector";
 import { Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +23,7 @@ export default function Index() {
   } = useConversations();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("conversation");
 
   const sendMessage = useCallback(
     async (text: string, attachments?: Attachment[]) => {
@@ -33,19 +35,16 @@ export default function Index() {
       addMessage(convId, { role: "user", content: text, attachments });
       setIsLoading(true);
 
-      // Add empty assistant message
       addMessage(convId, { role: "assistant", content: "" });
 
       let fullContent = "";
 
       try {
-        // Build message history
         const conv = conversations.find((c) => c.id === convId);
         const history = conv
           ? [...conv.messages.map((m) => ({ role: m.role, content: m.content })), { role: "user" as const, content: text }]
           : [{ role: "user" as const, content: text }];
 
-        // If there are image attachments, add them to the last user message for the AI
         if (attachments && attachments.length > 0) {
           const imageUrls = attachments.filter((a) => a.type === "image").map((a) => a.url);
           if (imageUrls.length > 0) {
@@ -56,6 +55,7 @@ export default function Index() {
 
         await streamChat({
           messages: history,
+          mode,
           onDelta: (chunk) => {
             fullContent += chunk;
             updateLastAssistantMessage(convId!, fullContent);
@@ -72,7 +72,7 @@ export default function Index() {
         });
       }
     },
-    [activeId, conversations, createConversation, addMessage, updateLastAssistantMessage, toast]
+    [activeId, conversations, createConversation, addMessage, updateLastAssistantMessage, toast, mode]
   );
 
   return (
@@ -87,24 +87,25 @@ export default function Index() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="border-b border-border bg-card/30 px-6 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shuban-glow">
-            <Bot className="h-5 w-5 text-primary" />
+        <header className="border-b border-border bg-card/30 px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shuban-glow">
+              <Bot className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="font-heading font-bold text-lg shuban-gradient-text">ShubanAI</h1>
+              <p className="text-xs text-muted-foreground">Research & Knowledge Assistant</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-heading font-bold text-lg shuban-gradient-text">ShubanAI</h1>
-            <p className="text-xs text-muted-foreground">Research & Knowledge Assistant</p>
-          </div>
+          <ModeSelector mode={mode} onChange={setMode} />
         </header>
 
-        {/* Chat Area */}
         <ChatArea
           conversation={activeConversation}
           isLoading={isLoading}
           onSuggestion={sendMessage}
         />
 
-        {/* Input */}
         <ChatInput onSend={sendMessage} disabled={isLoading} />
       </div>
     </div>
