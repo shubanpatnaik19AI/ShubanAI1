@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, X, Image, Film } from "lucide-react";
+import { Send, Paperclip, X, Film, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Attachment } from "@/lib/chat-store";
@@ -8,6 +8,44 @@ type Props = {
   onSend: (message: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
 };
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const DOC_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+  "text/csv",
+];
+
+const ACCEPT = [...IMAGE_TYPES, ...VIDEO_TYPES, ...DOC_TYPES].join(",");
+
+function getFileType(mime: string): "image" | "video" | "document" {
+  if (IMAGE_TYPES.includes(mime)) return "image";
+  if (VIDEO_TYPES.includes(mime)) return "video";
+  return "document";
+}
+
+function getDocLabel(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    pdf: "PDF",
+    doc: "Word",
+    docx: "Word",
+    ppt: "PowerPoint",
+    pptx: "PowerPoint",
+    xls: "Excel",
+    xlsx: "Excel",
+    csv: "CSV",
+    txt: "Text",
+  };
+  return map[ext] || "File";
+}
 
 export function ChatInput({ onSend, disabled }: Props) {
   const [input, setInput] = useState("");
@@ -31,9 +69,8 @@ export function ChatInput({ onSend, disabled }: Props) {
     const newAttachments: Attachment[] = [];
 
     for (const file of Array.from(files)) {
-      const isImage = file.type.startsWith("image/");
-      const isVideo = file.type.startsWith("video/");
-      if (!isImage && !isVideo) continue;
+      const type = getFileType(file.type);
+      if (type === "document" && !DOC_TYPES.includes(file.type)) continue;
 
       const ext = file.name.split(".").pop();
       const path = `${crypto.randomUUID()}.${ext}`;
@@ -49,7 +86,7 @@ export function ChatInput({ onSend, disabled }: Props) {
       newAttachments.push({
         id: crypto.randomUUID(),
         url: urlData.publicUrl,
-        type: isImage ? "image" : "video",
+        type,
         name: file.name,
       });
     }
@@ -81,9 +118,14 @@ export function ChatInput({ onSend, disabled }: Props) {
               <div key={att.id} className="relative group rounded-lg overflow-hidden border border-border bg-secondary/50">
                 {att.type === "image" ? (
                   <img src={att.url} alt={att.name} className="w-20 h-20 object-cover" />
-                ) : (
+                ) : att.type === "video" ? (
                   <div className="w-20 h-20 flex items-center justify-center bg-secondary">
                     <Film className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 flex flex-col items-center justify-center bg-secondary gap-1 px-1">
+                    <FileText className="h-6 w-6 text-primary" />
+                    <span className="text-[10px] text-muted-foreground truncate w-full text-center">{getDocLabel(att.name)}</span>
                   </div>
                 )}
                 <button
@@ -101,7 +143,7 @@ export function ChatInput({ onSend, disabled }: Props) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept={ACCEPT}
             multiple
             onChange={handleFileUpload}
             className="hidden"
@@ -123,7 +165,7 @@ export function ChatInput({ onSend, disabled }: Props) {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
             }}
-            placeholder="Ask me anything... You can also attach images or videos."
+            placeholder="Ask me anything... Attach images, videos, documents, or presentations."
             className="flex-1 bg-transparent resize-none outline-none text-sm text-foreground placeholder:text-muted-foreground min-h-[40px] max-h-[160px] p-2"
             rows={1}
             disabled={disabled}
