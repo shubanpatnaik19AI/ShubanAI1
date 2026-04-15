@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export type Attachment = {
   id: string;
@@ -23,9 +23,38 @@ export type Conversation = {
   updatedAt: Date;
 };
 
+const STORAGE_KEY = "shuban-conversations";
+
+function loadConversations(): Conversation[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Conversation[];
+    return parsed.map((c) => ({
+      ...c,
+      createdAt: new Date(c.createdAt),
+      updatedAt: new Date(c.updatedAt),
+      messages: c.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) })),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function saveConversations(convs: Conversation[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(convs));
+  } catch {}
+}
+
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Persist to localStorage on every change
+  useEffect(() => {
+    saveConversations(conversations);
+  }, [conversations]);
 
   const activeConversation = conversations.find((c) => c.id === activeId) || null;
 
