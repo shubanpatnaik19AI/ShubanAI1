@@ -1,6 +1,6 @@
-import { Brain, MessageCircle, Search, GraduationCap } from "lucide-react";
+import { Brain, MessageCircle, Search, GraduationCap, Sparkles } from "lucide-react";
 
-export type ChatMode = "conversation" | "deep-thinking" | "research" | "study";
+export type ChatMode = "conversation" | "deep-thinking" | "research" | "study" | "shuban";
 
 type ModeOption = {
   id: ChatMode;
@@ -14,6 +14,7 @@ export const MODES: ModeOption[] = [
   { id: "deep-thinking", label: "Deep Thinking", icon: Brain, description: "Complex reasoning & analysis" },
   { id: "research", label: "Research", icon: Search, description: "In-depth research & sources" },
   { id: "study", label: "Study", icon: GraduationCap, description: "Learning & explanations" },
+  { id: "shuban", label: "Shuban Mode", icon: Sparkles, description: "Talk with any famous person" },
 ];
 
 type Props = {
