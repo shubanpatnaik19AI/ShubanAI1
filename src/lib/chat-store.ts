@@ -48,7 +48,7 @@ function saveConversations(convs: Conversation[]) {
 }
 
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [conversations, setConversations] = useState<Conversation[]>(() => loadConversations());
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Persist to localStorage on every change
