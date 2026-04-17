@@ -6,13 +6,15 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { ChatInput } from "@/components/ChatInput";
 import { ModeSelector, type ChatMode } from "@/components/ModeSelector";
-import { Bot, Users } from "lucide-react";
+import { Bot, Users, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Index() {
   const { toast } = useToast();
+  const { signOut } = useAuth();
   const {
     conversations,
     activeId,
@@ -106,6 +108,9 @@ export default function Index() {
               </Link>
             </Button>
             <ModeSelector mode={mode} onChange={setMode} />
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </header>
 
