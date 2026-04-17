@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,31 +9,88 @@ const corsHeaders = {
 type Participant = { id: string; name: string; email?: string; persona?: string };
 type Msg = { speakerId: string; speakerName: string; content: string };
 
+const MAX_PARTICIPANTS = 8;
+const MAX_HISTORY = 100;
+const MAX_TEXT = 2000;
+
+function sanitizeStr(v: unknown, max: number): string {
+  if (typeof v !== "string") return "";
+  return v.slice(0, max);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { participants, history, userMessage, topic } = await req.json() as {
-      participants: Participant[];
-      history: Msg[];
-      userMessage: string;
-      topic?: string;
+    // --- Auth ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { participants, history, userMessage, topic } = body as {
+      participants?: unknown; history?: unknown; userMessage?: unknown; topic?: unknown;
     };
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    if (!participants?.length) {
-      return new Response(JSON.stringify({ error: "No participants" }), {
+    if (!Array.isArray(participants) || participants.length === 0 || participants.length > MAX_PARTICIPANTS) {
+      return new Response(JSON.stringify({ error: `participants must be 1-${MAX_PARTICIPANTS}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!Array.isArray(history) || history.length > MAX_HISTORY) {
+      return new Response(JSON.stringify({ error: `history must be an array up to ${MAX_HISTORY}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userMsg = sanitizeStr(userMessage, MAX_TEXT);
+    if (!userMsg) {
+      return new Response(JSON.stringify({ error: "userMessage required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const roster = participants
+    const cleanParticipants: Participant[] = participants.map((p: any) => ({
+      id: sanitizeStr(p?.id, 100),
+      name: sanitizeStr(p?.name, 200),
+      email: p?.email ? sanitizeStr(p.email, 255) : undefined,
+      persona: p?.persona ? sanitizeStr(p.persona, 500) : undefined,
+    })).filter((p) => p.id && p.name);
+
+    const cleanHistory: Msg[] = (history as any[]).map((m) => ({
+      speakerId: sanitizeStr(m?.speakerId, 100),
+      speakerName: sanitizeStr(m?.speakerName, 200),
+      content: sanitizeStr(m?.content, MAX_TEXT),
+    }));
+
+    const cleanTopic = typeof topic === "string" ? sanitizeStr(topic, 500) : undefined;
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const roster = cleanParticipants
       .map((p) => `- ${p.name}${p.persona ? ` (persona: ${p.persona})` : ""}${p.email ? ` <${p.email}>` : ""}`)
       .join("\n");
 
-    const transcript = history
+    const transcript = cleanHistory
       .slice(-20)
       .map((m) => `${m.speakerName}: ${m.content}`)
       .join("\n");
@@ -41,9 +99,9 @@ serve(async (req) => {
 
 Participants at the table:
 ${roster}
-${topic ? `\nTopic: ${topic}` : ""}
+${cleanTopic ? `\nTopic: ${cleanTopic}` : ""}
 
-Your job: when the user (the host) speaks, generate authentic, in-character replies from 2 to ${Math.min(participants.length, 4)} of the participants who would most naturally respond. Each participant should sound distinct — match their persona, expertise, tone, and speaking style. Keep each reply concise (1-3 sentences). Participants may react to each other, agree, disagree, or build on prior turns.
+Your job: when the user (the host) speaks, generate authentic, in-character replies from 2 to ${Math.min(cleanParticipants.length, 4)} of the participants who would most naturally respond. Each participant should sound distinct — match their persona, expertise, tone, and speaking style. Keep each reply concise (1-3 sentences). Participants may react to each other, agree, disagree, or build on prior turns.
 
 Respond by calling the "group_replies" tool with an array of replies.`;
 
@@ -74,7 +132,7 @@ Respond by calling the "group_replies" tool with an array of replies.`;
       },
     };
 
-    const userBlock = `Conversation so far:\n${transcript || "(empty)"}\n\nHost just said: ${userMessage}\n\nGenerate the next round of in-character replies.`;
+    const userBlock = `Conversation so far:\n${transcript || "(empty)"}\n\nHost just said: ${userMsg}\n\nGenerate the next round of in-character replies.`;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

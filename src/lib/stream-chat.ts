@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shuban-chat`;
 
 export type Msg = { role: "user" | "assistant"; content: string };
@@ -15,11 +17,15 @@ export async function streamChat({
   onDone: () => void;
   signal?: AbortSignal;
 }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("You must be signed in to chat.");
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ messages, mode: mode || "conversation" }),
     signal,

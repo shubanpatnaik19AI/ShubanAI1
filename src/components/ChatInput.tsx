@@ -66,6 +66,12 @@ export function ChatInput({ onSend, disabled }: Props) {
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("Not signed in");
+      setUploading(false);
+      return;
+    }
     const newAttachments: Attachment[] = [];
 
     for (const file of Array.from(files)) {
@@ -73,7 +79,7 @@ export function ChatInput({ onSend, disabled }: Props) {
       if (type === "document" && !DOC_TYPES.includes(file.type)) continue;
 
       const ext = file.name.split(".").pop();
-      const path = `${crypto.randomUUID()}.${ext}`;
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
       const { error } = await supabase.storage.from("chat-media").upload(path, file);
       if (error) {
@@ -81,11 +87,14 @@ export function ChatInput({ onSend, disabled }: Props) {
         continue;
       }
 
-      const { data: urlData } = supabase.storage.from("chat-media").getPublicUrl(path);
+      // Bucket is private — generate a long-lived signed URL for display
+      const { data: signed } = await supabase.storage
+        .from("chat-media")
+        .createSignedUrl(path, 60 * 60 * 24 * 7); // 7 days
 
       newAttachments.push({
         id: crypto.randomUUID(),
-        url: urlData.publicUrl,
+        url: signed?.signedUrl ?? "",
         type,
         name: file.name,
       });
