@@ -6,7 +6,9 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { ChatInput } from "@/components/ChatInput";
 import { ModeSelector, type ChatMode } from "@/components/ModeSelector";
-import { Bot } from "lucide-react";
+import { Bot, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
@@ -97,7 +99,14 @@ export default function Index() {
               <p className="text-xs text-muted-foreground">Research & Knowledge Assistant</p>
             </div>
           </div>
-          <ModeSelector mode={mode} onChange={setMode} />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/group">
+                <Users className="h-4 w-4" /> Roundtable
+              </Link>
+            </Button>
+            <ModeSelector mode={mode} onChange={setMode} />
+          </div>
         </header>
 
         <ChatArea
