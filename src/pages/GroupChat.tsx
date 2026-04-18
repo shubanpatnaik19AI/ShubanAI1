@@ -39,7 +39,7 @@ export default function GroupChat() {
   const [persona, setPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const addParticipant = (n: string, e?: string, p?: string) => {
+  const addParticipant = (n: string, kind: "person" | "celeb", e?: string, p?: string) => {
     if (!n.trim()) return;
     if (participants.length >= 8) {
       toast({ title: "Roundtable full", description: "Max 8 seats." });
@@ -53,12 +53,13 @@ export default function GroupChat() {
         email: e?.trim() || undefined,
         persona: p?.trim() || undefined,
         color: PALETTE[prev.length % PALETTE.length],
+        kind,
       },
     ]);
   };
 
   const handleAdd = () => {
-    addParticipant(name, email, persona);
+    addParticipant(name, "person", email, persona);
     setName(""); setEmail(""); setPersona("");
   };
 
