@@ -135,27 +135,42 @@ export default function GroupChat() {
       <div className="max-w-7xl mx-auto px-6 py-6 grid lg:grid-cols-[320px_1fr] gap-6">
         {/* Left: invite panel */}
         <aside className="space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
-            <h2 className="font-semibold mb-1 flex items-center gap-2"><Mail className="h-4 w-4 text-rose-500" /> Invite by email</h2>
-            <p className="text-xs text-slate-500 mb-3">Add people or AI personas to the roundtable.</p>
+          {/* People section */}
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-rose-200/70 p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
+                <UserPlus className="h-4 w-4 text-rose-600" />
+              </div>
+              <h2 className="font-semibold">People</h2>
+              <span className="ml-auto text-xs text-slate-500">{participants.filter(p => p.kind === "person").length} added</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Invite real people by email to join the roundtable.</p>
             <div className="space-y-2">
-              <Input placeholder="Name (e.g., Albert Einstein)" value={name} onChange={(e) => setName(e.target.value)} className="bg-white" />
-              <Input placeholder="Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="bg-white" />
-              <Textarea placeholder="Persona / role (optional) — e.g., 'Witty physicist'" value={persona} onChange={(e) => setPersona(e.target.value)} rows={2} className="bg-white resize-none" />
-              <Button onClick={handleAdd} className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90">
-                <Plus className="h-4 w-4 mr-1" /> Add to table
+              <Input placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className="bg-white" />
+              <Input placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="bg-white" />
+              <Textarea placeholder="Role (optional) — e.g., 'Product manager'" value={persona} onChange={(e) => setPersona(e.target.value)} rows={2} className="bg-white resize-none" />
+              <Button onClick={handleAdd} className="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90">
+                <Mail className="h-4 w-4 mr-1" /> Invite person
               </Button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
-            <h3 className="font-semibold mb-2 text-sm">Quick invites</h3>
+          {/* Shuban Mode section */}
+          <div className="bg-white rounded-2xl shadow-sm border-2 border-violet-200/70 p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                <Star className="h-4 w-4 text-violet-600" />
+              </div>
+              <h2 className="font-semibold">Shuban Mode</h2>
+              <span className="ml-auto text-xs text-slate-500">{participants.filter(p => p.kind === "celeb").length} added</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Add famous figures, scientists, or celebrities as AI personas.</p>
             <div className="grid grid-cols-2 gap-2">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s.name}
-                  onClick={() => addParticipant(s.name, undefined, s.persona)}
-                  className="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-left"
+                  onClick={() => addParticipant(s.name, "celeb", undefined, s.persona)}
+                  className="text-xs px-3 py-2 rounded-lg border border-violet-200 bg-violet-50/50 hover:bg-violet-100 text-left text-violet-900 font-medium"
                 >
                   {s.name}
                 </button>
