@@ -210,8 +210,11 @@ export default function GroupChat() {
                       className="absolute left-1/2 top-1/2 group"
                       style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
                     >
-                      <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white font-bold shadow-md`}>
+                      <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${p.color} flex items-center justify-center text-white font-bold shadow-md ring-2 ${p.kind === "celeb" ? "ring-violet-400" : "ring-rose-400"}`}>
                         {p.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                      </div>
+                      <div className={`absolute -bottom-0 -left-1 w-5 h-5 rounded-full flex items-center justify-center shadow-sm ${p.kind === "celeb" ? "bg-violet-500" : "bg-rose-500"}`} title={p.kind === "celeb" ? "Shuban Mode persona" : "Invited person"}>
+                        {p.kind === "celeb" ? <Star className="h-3 w-3 text-white" /> : <UserPlus className="h-3 w-3 text-white" />}
                       </div>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 text-xs font-medium text-slate-700 whitespace-nowrap max-w-[120px] truncate text-center">
                         {p.name}
