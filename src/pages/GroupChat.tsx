@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-type Participant = { id: string; name: string; email?: string; persona?: string; color: string };
+type Participant = { id: string; name: string; email?: string; persona?: string; color: string; kind: "person" | "celeb" };
 type GroupMsg = { id: string; speakerId: string; speakerName: string; content: string; isHost?: boolean };
 
 const PALETTE = [
