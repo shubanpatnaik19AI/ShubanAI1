@@ -41,12 +41,67 @@ export type Database = {
         }
         Relationships: []
       }
+      roundtable_invites: {
+        Row: {
+          created_at: string
+          host_name: string | null
+          host_user_id: string
+          id: string
+          invitee_email: string | null
+          invitee_name: string
+          joined_at: string | null
+          persona: string | null
+          status: string
+          token: string
+          topic: string | null
+        }
+        Insert: {
+          created_at?: string
+          host_name?: string | null
+          host_user_id: string
+          id?: string
+          invitee_email?: string | null
+          invitee_name: string
+          joined_at?: string | null
+          persona?: string | null
+          status?: string
+          token?: string
+          topic?: string | null
+        }
+        Update: {
+          created_at?: string
+          host_name?: string | null
+          host_user_id?: string
+          id?: string
+          invitee_email?: string | null
+          invitee_name?: string
+          joined_at?: string | null
+          persona?: string | null
+          status?: string
+          token?: string
+          topic?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_invite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          host_name: string
+          id: string
+          invitee_name: string
+          persona: string
+          status: string
+          token: string
+          topic: string
+        }[]
+      }
+      mark_invite_joined: { Args: { _token: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

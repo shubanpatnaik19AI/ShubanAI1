@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Send, Users, X, ArrowLeft, Mail, Sparkles, Loader2, UserPlus, Star } from "lucide-react";
+import { Plus, Send, Users, X, ArrowLeft, Mail, Sparkles, Loader2, UserPlus, Star, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-type Participant = { id: string; name: string; email?: string; persona?: string; color: string; kind: "person" | "celeb" };
+type Participant = { id: string; name: string; email?: string; persona?: string; color: string; kind: "person" | "celeb"; inviteToken?: string };
 type GroupMsg = { id: string; speakerId: string; speakerName: string; content: string; isHost?: boolean };
 
 const PALETTE = [
@@ -30,6 +31,7 @@ const SUGGESTIONS = [
 
 export default function GroupChat() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [messages, setMessages] = useState<GroupMsg[]>([]);
   const [topic, setTopic] = useState("");
@@ -38,12 +40,14 @@ export default function GroupChat() {
   const [email, setEmail] = useState("");
   const [persona, setPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
-  const addParticipant = (n: string, kind: "person" | "celeb", e?: string, p?: string) => {
-    if (!n.trim()) return;
+  const addParticipant = (n: string, kind: "person" | "celeb", e?: string, p?: string, inviteToken?: string) => {
+    if (!n.trim()) return false;
     if (participants.length >= 8) {
       toast({ title: "Roundtable full", description: "Max 8 seats." });
-      return;
+      return false;
     }
     setParticipants((prev) => [
       ...prev,
@@ -54,13 +58,59 @@ export default function GroupChat() {
         persona: p?.trim() || undefined,
         color: PALETTE[prev.length % PALETTE.length],
         kind,
+        inviteToken,
       },
     ]);
+    return true;
   };
 
-  const handleAdd = () => {
-    addParticipant(name, "person", email, persona);
-    setName(""); setEmail(""); setPersona("");
+  const handleAdd = async () => {
+    if (!name.trim()) return;
+    if (participants.length >= 8) {
+      toast({ title: "Roundtable full", description: "Max 8 seats." });
+      return;
+    }
+    setInviting(true);
+    let token: string | undefined;
+    if (user) {
+      const hostName = user.user_metadata?.display_name || user.email?.split("@")[0] || "A friend";
+      const { data, error } = await supabase
+        .from("roundtable_invites")
+        .insert({
+          host_user_id: user.id,
+          host_name: hostName,
+          invitee_name: name.trim(),
+          invitee_email: email.trim() || null,
+          persona: persona.trim() || null,
+          topic: topic.trim() || null,
+        })
+        .select("token")
+        .single();
+      if (error) {
+        toast({ variant: "destructive", title: "Invite failed", description: error.message });
+        setInviting(false);
+        return;
+      }
+      token = data?.token;
+    }
+    const ok = addParticipant(name, "person", email, persona, token);
+    setInviting(false);
+    if (ok) {
+      setName(""); setEmail(""); setPersona("");
+      if (token) {
+        const link = `${window.location.origin}/join/${token}`;
+        await navigator.clipboard.writeText(link).catch(() => {});
+        toast({ title: "Invite link copied!", description: "Paste it in WhatsApp, iMessage, or anywhere." });
+      }
+    }
+  };
+
+  const copyInviteLink = async (token: string) => {
+    const link = `${window.location.origin}/join/${token}`;
+    await navigator.clipboard.writeText(link).catch(() => {});
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+    toast({ title: "Link copied" });
   };
 
   const removeParticipant = (id: string) => {
@@ -144,15 +194,39 @@ export default function GroupChat() {
               <h2 className="font-semibold">People</h2>
               <span className="ml-auto text-xs text-slate-500">{participants.filter(p => p.kind === "person").length} added</span>
             </div>
-            <p className="text-xs text-slate-500 mb-3">Invite real people by email to join the roundtable.</p>
+            <p className="text-xs text-slate-500 mb-3">Invite real people — we'll generate a shareable link.</p>
             <div className="space-y-2">
               <Input placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className="bg-white" />
-              <Input placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="bg-white" />
+              <Input placeholder="Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="bg-white" />
               <Textarea placeholder="Role (optional) — e.g., 'Product manager'" value={persona} onChange={(e) => setPersona(e.target.value)} rows={2} className="bg-white resize-none" />
-              <Button onClick={handleAdd} className="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90">
-                <Mail className="h-4 w-4 mr-1" /> Invite person
+              <Button onClick={handleAdd} disabled={inviting} className="w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:opacity-90">
+                {inviting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Mail className="h-4 w-4 mr-1" />}
+                {inviting ? "Generating link..." : "Invite person"}
               </Button>
             </div>
+
+            {/* Invite links list */}
+            {participants.filter(p => p.kind === "person" && p.inviteToken).length > 0 && (
+              <div className="mt-4 pt-4 border-t border-rose-100 space-y-2">
+                <p className="text-xs font-semibold text-slate-600">Shareable invite links</p>
+                {participants.filter(p => p.kind === "person" && p.inviteToken).map((p) => (
+                  <div key={p.id} className="flex items-center gap-2 bg-rose-50/60 rounded-lg p-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-slate-700 truncate">{p.name}</p>
+                      <p className="text-[10px] text-slate-500 truncate">/join/{p.inviteToken!.slice(0, 12)}...</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => copyInviteLink(p.inviteToken!)}
+                    >
+                      {copiedToken === p.inviteToken ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Shuban Mode section */}
