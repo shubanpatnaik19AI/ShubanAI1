@@ -31,6 +31,7 @@ const SUGGESTIONS = [
 
 export default function GroupChat() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [messages, setMessages] = useState<GroupMsg[]>([]);
   const [topic, setTopic] = useState("");
@@ -39,12 +40,14 @@ export default function GroupChat() {
   const [email, setEmail] = useState("");
   const [persona, setPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
-  const addParticipant = (n: string, kind: "person" | "celeb", e?: string, p?: string) => {
-    if (!n.trim()) return;
+  const addParticipant = (n: string, kind: "person" | "celeb", e?: string, p?: string, inviteToken?: string) => {
+    if (!n.trim()) return false;
     if (participants.length >= 8) {
       toast({ title: "Roundtable full", description: "Max 8 seats." });
-      return;
+      return false;
     }
     setParticipants((prev) => [
       ...prev,
@@ -55,13 +58,59 @@ export default function GroupChat() {
         persona: p?.trim() || undefined,
         color: PALETTE[prev.length % PALETTE.length],
         kind,
+        inviteToken,
       },
     ]);
+    return true;
   };
 
-  const handleAdd = () => {
-    addParticipant(name, "person", email, persona);
-    setName(""); setEmail(""); setPersona("");
+  const handleAdd = async () => {
+    if (!name.trim()) return;
+    if (participants.length >= 8) {
+      toast({ title: "Roundtable full", description: "Max 8 seats." });
+      return;
+    }
+    setInviting(true);
+    let token: string | undefined;
+    if (user) {
+      const hostName = user.user_metadata?.display_name || user.email?.split("@")[0] || "A friend";
+      const { data, error } = await supabase
+        .from("roundtable_invites")
+        .insert({
+          host_user_id: user.id,
+          host_name: hostName,
+          invitee_name: name.trim(),
+          invitee_email: email.trim() || null,
+          persona: persona.trim() || null,
+          topic: topic.trim() || null,
+        })
+        .select("token")
+        .single();
+      if (error) {
+        toast({ variant: "destructive", title: "Invite failed", description: error.message });
+        setInviting(false);
+        return;
+      }
+      token = data?.token;
+    }
+    const ok = addParticipant(name, "person", email, persona, token);
+    setInviting(false);
+    if (ok) {
+      setName(""); setEmail(""); setPersona("");
+      if (token) {
+        const link = `${window.location.origin}/join/${token}`;
+        await navigator.clipboard.writeText(link).catch(() => {});
+        toast({ title: "Invite link copied!", description: "Paste it in WhatsApp, iMessage, or anywhere." });
+      }
+    }
+  };
+
+  const copyInviteLink = async (token: string) => {
+    const link = `${window.location.origin}/join/${token}`;
+    await navigator.clipboard.writeText(link).catch(() => {});
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+    toast({ title: "Link copied" });
   };
 
   const removeParticipant = (id: string) => {
