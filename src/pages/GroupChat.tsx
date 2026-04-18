@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Send, Users, X, ArrowLeft, Mail, Sparkles, Loader2, UserPlus, Star } from "lucide-react";
+import { Plus, Send, Users, X, ArrowLeft, Mail, Sparkles, Loader2, UserPlus, Star, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-type Participant = { id: string; name: string; email?: string; persona?: string; color: string; kind: "person" | "celeb" };
+type Participant = { id: string; name: string; email?: string; persona?: string; color: string; kind: "person" | "celeb"; inviteToken?: string };
 type GroupMsg = { id: string; speakerId: string; speakerName: string; content: string; isHost?: boolean };
 
 const PALETTE = [
