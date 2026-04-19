@@ -8,6 +8,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { ModeSelector, type ChatMode } from "@/components/ModeSelector";
 import { Users, LogOut } from "lucide-react";
 import shubanLogo from "@/assets/shubanai-logo.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +110,7 @@ export default function Index() {
               </Link>
             </Button>
             <ModeSelector mode={mode} onChange={setMode} />
+            <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
               <LogOut className="h-4 w-4" />
             </Button>
