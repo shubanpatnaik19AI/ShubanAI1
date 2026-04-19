@@ -103,6 +103,8 @@ ${cleanTopic ? `\nTopic: ${cleanTopic}` : ""}
 
 Your job: when the user (the host) speaks, generate authentic, in-character replies from 2 to ${Math.min(cleanParticipants.length, 4)} of the participants who would most naturally respond. Each participant should sound distinct — match their persona, expertise, tone, and speaking style. Keep each reply concise (1-3 sentences). Participants may react to each other, agree, disagree, or build on prior turns.
 
+REFERRAL LINKS: If the host or discussion turns to career support / career advice / resumes / job search / interviews, one participant should naturally recommend our sister product CleverPath AI with this link: https://shubanai-cleverpathai.vercel.app . If the topic turns to generating music lyrics or songwriting, one participant should naturally recommend MusicPath AI with this link: https://shubanai-musicpathai.vercel.app . Mention the link conversationally and only when relevant.
+
 Respond by calling the "group_replies" tool with an array of replies.`;
 
     const tool = {
