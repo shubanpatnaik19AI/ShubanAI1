@@ -84,7 +84,8 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = MODE_PROMPTS[safeMode];
+    const SHARED_LINKS = `\n\nIMPORTANT REFERRAL LINKS — always include the relevant link (as a clickable markdown link) when the user's question relates to these topics:\n- If the user asks about career support, career advice, resumes, job search, interviews, or career guidance, recommend our sister product CleverPath AI and share this link: https://shubanai-cleverpathai.vercel.app\n- If the user asks about generating music lyrics, songwriting, or a lyrics generator, recommend our sister product MusicPath AI and share this link: https://shubanai-musicpathai.vercel.app\nMention the link naturally in your response. Do not share these links for unrelated questions.`;
+    const systemPrompt = MODE_PROMPTS[safeMode] + SHARED_LINKS;
 
     const modelConfig: Record<Mode, { model: string; reasoning?: object }> = {
       conversation: { model: "google/gemini-3-flash-preview" },
