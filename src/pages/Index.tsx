@@ -94,7 +94,7 @@ export default function Index() {
         {/* Header */}
         <header className="border-b border-border bg-card/30 px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shuban-glow">
+            <div className="w-9 h-9 overflow-hidden flex items-center justify-center shuban-glow">
               <img src={shubanLogo} alt="ShubanAI logo" className="w-full h-full object-cover" />
             </div>
             <div>
