@@ -6,7 +6,8 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { ChatInput } from "@/components/ChatInput";
 import { ModeSelector, type ChatMode } from "@/components/ModeSelector";
-import { Bot, Users, LogOut } from "lucide-react";
+import { Users, LogOut } from "lucide-react";
+import shubanLogo from "@/assets/shubanai-logo.png";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -93,8 +94,8 @@ export default function Index() {
         {/* Header */}
         <header className="border-b border-border bg-card/30 px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shuban-glow">
-              <Bot className="h-5 w-5 text-primary" />
+            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shuban-glow">
+              <img src={shubanLogo} alt="ShubanAI logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-heading font-bold text-lg shuban-gradient-text">ShubanAI</h1>
